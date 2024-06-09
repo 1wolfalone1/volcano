@@ -9,7 +9,12 @@ metadata:
   name: {{ .Release.Name }}-scheduler-configmap
   namespace: {{ .Release.Namespace }}
 data:
+  {{- if .Values.custom.scheduler_config_override }}
+  volcano-scheduler.conf: |
+    {{- .Values.custom.scheduler_config_override | nindent 4 }}
+  {{- else }}
   {{- (.Files.Glob .Values.basic.scheduler_config_file).AsConfig | nindent 2}}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -98,7 +103,6 @@ roleRef:
   kind: ClusterRole
   name: {{ .Release.Name }}-scheduler
   apiGroup: rbac.authorization.k8s.io
-
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -145,7 +149,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Release.Name }}-scheduler
-          image: {{.Values.basic.scheduler_image_name}}:{{.Values.basic.image_tag_version}}
+          image: 1wolfalone1/vc-scheduler:latest
           {{- if .Values.custom.scheduler_resources }}
           resources:
           {{- toYaml .Values.custom.scheduler_resources | nindent 12 }}
@@ -155,20 +159,30 @@ spec:
             - --scheduler-conf=/volcano.scheduler/{{base .Values.basic.scheduler_config_file}}
             - --enable-healthz=true
             - --enable-metrics=true
+            - --scheduler-name=g1
+            - --node-selector=volcano.sh/nodegroup-name:g1
             - --leader-elect={{ .Values.custom.leader_elect_enable }}
             {{- if .Values.custom.leader_elect_enable }}
-            - --lock-object-namespace={{ .Release.Namespace }}
+            - --leader-elect-resource-namespace={{ .Release.Namespace }}
             {{- end }}
-            - -v=3
+            - -v=4
             - 2>&1
+          env:
+            - name: DEBUG_SOCKET_DIR
+              value: /tmp/klog-socks
           imagePullPolicy: {{ .Values.basic.image_pull_policy }}
           volumeMounts:
             - name: scheduler-config
               mountPath: /volcano.scheduler
+            - name: klog-sock
+              mountPath: /tmp/klog-socks
       volumes:
         - name: scheduler-config
           configMap:
             name: {{ .Release.Name }}-scheduler-configmap
+        - name: klog-sock
+          hostPath:
+            path: /tmp/klog-socks
 ---
 apiVersion: v1
 kind: Service
@@ -191,3 +205,4 @@ spec:
     app: volcano-scheduler
   type: ClusterIP
 {{- end }}
+
