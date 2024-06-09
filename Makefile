@@ -15,7 +15,8 @@
 BIN_DIR=_output/bin
 RELEASE_DIR=_output/release
 REPO_PATH=volcano.sh/volcano
-IMAGE_PREFIX=volcanosh
+IMAGE_PREFIX=1wolfalone1
+TAG=latest
 CRD_OPTIONS ?= "crd:crdVersions=v1,generateEmbeddedObjectMeta=true"
 CC ?= "gcc"
 SUPPORT_PLUGINS ?= "no"

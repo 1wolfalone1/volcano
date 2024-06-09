@@ -6,21 +6,26 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-scheduler-configmap
+  name: {{ .Release.Name }}-scheduler-configmap-2
   namespace: {{ .Release.Namespace }}
 data:
+  {{- if .Values.custom.scheduler_config_override }}
+  volcano-scheduler.conf: |
+    {{- .Values.custom.scheduler_config_override | nindent 4 }}
+  {{- else }}
   {{- (.Files.Glob .Values.basic.scheduler_config_file).AsConfig | nindent 2}}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Release.Name }}-scheduler
+  name: {{ .Release.Name }}-scheduler-2
   namespace: {{ .Release.Namespace }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Release.Name }}-scheduler
+  name: {{ .Release.Name }}-scheduler-2
 rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -89,24 +94,24 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Release.Name }}-scheduler-role
+  name: {{ .Release.Name }}-scheduler-role-2
 subjects:
   - kind: ServiceAccount
-    name: {{ .Release.Name }}-scheduler
+    name: {{ .Release.Name }}-scheduler-2
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: {{ .Release.Name }}-scheduler
+  name: {{ .Release.Name }}-scheduler-2
   apiGroup: rbac.authorization.k8s.io
 
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: {{ .Release.Name }}-scheduler
+  name: {{ .Release.Name }}-scheduler-2
   namespace: {{ .Release.Namespace }}
   labels:
-    app: volcano-scheduler
+    app: volcano-scheduler-2
     {{- if .Values.custom.scheduler_labels }}
     {{- toYaml .Values.custom.scheduler_labels | nindent 4 }}
     {{- end }}
@@ -114,11 +119,11 @@ spec:
   replicas: {{ .Values.custom.scheduler_replicas }}
   selector:
     matchLabels:
-      app: volcano-scheduler
+      app: volcano-scheduler-2
   template:
     metadata:
       labels:
-        app: volcano-scheduler
+        app: volcano-scheduler-2
         {{- if .Values.custom.scheduler_podLabels }}
         {{- toYaml .Values.custom.scheduler_podLabels | nindent 8 }}
         {{- end }}
@@ -137,15 +142,15 @@ spec:
       securityContext:
         {{- toYaml $scheduler_sc | nindent 8 }}
       {{- end }}
-      serviceAccount: {{ .Release.Name }}-scheduler
+      serviceAccount: {{ .Release.Name }}-scheduler-2
       priorityClassName: system-cluster-critical
       {{- if .Values.basic.image_pull_secret }}
       imagePullSecrets:
           - name: {{ .Values.basic.image_pull_secret }}
       {{- end }}
       containers:
-        - name: {{ .Release.Name }}-scheduler
-          image: {{.Values.basic.scheduler_image_name}}:{{.Values.basic.image_tag_version}}
+        - name: {{ .Release.Name }}-scheduler-2
+          image: 1wolfalone1/vc-scheduler:latest
           {{- if .Values.custom.scheduler_resources }}
           resources:
           {{- toYaml .Values.custom.scheduler_resources | nindent 12 }}
@@ -155,20 +160,30 @@ spec:
             - --scheduler-conf=/volcano.scheduler/{{base .Values.basic.scheduler_config_file}}
             - --enable-healthz=true
             - --enable-metrics=true
+            - --node-selector=volcano.sh/nodegroup-name:g2
+            - --scheduler-name=g2
             - --leader-elect={{ .Values.custom.leader_elect_enable }}
             {{- if .Values.custom.leader_elect_enable }}
-            - --lock-object-namespace={{ .Release.Namespace }}
+            - --leader-elect-resource-namespace={{ .Release.Namespace }}
             {{- end }}
-            - -v=3
+            - -v=4
             - 2>&1
+          env:
+            - name: DEBUG_SOCKET_DIR
+              value: /tmp/klog-socks
           imagePullPolicy: {{ .Values.basic.image_pull_policy }}
           volumeMounts:
-            - name: scheduler-config
+            - name: scheduler-config-2
               mountPath: /volcano.scheduler
+            - name: klog-sock-2
+              mountPath: /tmp/klog-socks
       volumes:
-        - name: scheduler-config
+        - name: scheduler-config-2
           configMap:
             name: {{ .Release.Name }}-scheduler-configmap
+        - name: klog-sock-2
+          hostPath:
+            path: /tmp/klog-socks
 ---
 apiVersion: v1
 kind: Service
@@ -177,10 +192,10 @@ metadata:
     prometheus.io/path: /metrics
     prometheus.io/port: "8080"
     prometheus.io/scrape: "true"
-  name: {{ .Release.Name }}-scheduler-service
+  name: {{ .Release.Name }}-scheduler-service-2
   namespace: {{ .Release.Namespace }}
   labels:
-    app: volcano-scheduler
+    app: volcano-scheduler-2
 spec:
   ports:
   - port: 8080
@@ -188,6 +203,7 @@ spec:
     targetPort: 8080
     name: "metrics"
   selector:
-    app: volcano-scheduler
+    app: volcano-scheduler-2
   type: ClusterIP
 {{- end }}
+

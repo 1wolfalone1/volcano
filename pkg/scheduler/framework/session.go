@@ -190,19 +190,20 @@ func openSession(cache cache.Cache) *Session {
 		klog.V(3).Infof("Node labels: %s", nodeLabels)
 		klog.V(3).Infof("Queue labels: %s", labelNodeGroup)
 
-		if nodeLabels != "" && nodeLabels == labelNodeGroup {
+		if queue != nil && nodeLabels == labelNodeGroup {
 			klog.V(3).Infof("Node labels match: %s", nodeLabels)
-			newQueue[queue.UID] = queue.Clone()
+			newQueue[queue.UID] = queue
 		}
 	}
 	for key, value := range newQueue {
-		klog.V(3).Infof("New queue key: %s, value: %s", key, value)
+		klog.V(3).Infof("valuee: %+v", value)
+		klog.V(3).Infof("New queue key: %s, value: %+v", key, value)
 	}
 	klog.V(3).Infof("------------------my custom--------------------end looop")
 	ssn.Queues = snapshot.Queues
 	klog.V(3).Infof("------------------my custom-------------------------------------end")
 
-	ssn.Queues = snapshot.Queues
+	ssn.Queues = newQueue
 	ssn.NamespaceInfo = snapshot.NamespaceInfo
 	// calculate all nodes' resource only once in each schedule cycle, other plugins can clone it when need
 	for _, n := range ssn.Nodes {
