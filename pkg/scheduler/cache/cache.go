@@ -1120,7 +1120,17 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 	}
 
 	for _, value := range sc.Queues {
-		snapshot.Queues[value.UID] = value.Clone()
+
+		klog.V(3).Infof("------------------my custom-------------------------------------start")
+		labelNodeGroup := value.Queue.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
+		klog.V(3).Infof("Scheduler name: %s", sc.schedulerNames[0])
+		if labelNodeGroup == sc.schedulerNames[0] {
+			klog.V(3).Infof("Founding queue: %s", value.Name)
+			snapshot.Queues[value.UID] = value.Clone()
+		} else {
+
+			klog.V(3).Infof("Not Founding queue: %s", value.Name)
+		}
 	}
 
 	var cloneJobLock sync.Mutex
@@ -1141,10 +1151,22 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 		}
 
 		clonedJob := value.Clone()
-
-		cloneJobLock.Lock()
-		snapshot.Jobs[value.UID] = clonedJob
-		cloneJobLock.Unlock()
+		var isInQueue = false
+		if _, exists := sc.Queues[value.Queue]; exists {
+			isInQueue = true
+			// The key exists in the map
+		} else {
+			klog.V(3).Info("The queue not in map ")
+			// The key does not exist in the map
+		}
+		if isInQueue {
+			klog.V(3).Infof("The Job found %s", value.Name)
+			cloneJobLock.Lock()
+			snapshot.Jobs[value.UID] = clonedJob
+			cloneJobLock.Unlock()
+		} else {
+			klog.V(3).Infof("The Job not found %s", value.Name)
+		}
 	}
 
 	for _, value := range sc.NamespaceCollection {

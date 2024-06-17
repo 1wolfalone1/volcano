@@ -176,34 +176,36 @@ func openSession(cache cache.Cache) *Session {
 	ssn.Nodes = snapshot.Nodes
 	ssn.CSINodesStatus = snapshot.CSINodesStatus
 	ssn.RevocableNodes = snapshot.RevocableNodes
-	klog.V(3).Infof("------------------my custom-------------------------------------start")
-	var newQueue map[api.QueueID]*api.QueueInfo = make(map[api.QueueID]*api.QueueInfo)
-	for _, queue := range snapshot.Queues {
-		klog.V(3).Infof("Index, Queue Name: %s\n", queue.Name)
-		labelNodeGroup := queue.Queue.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
-		var node *api.NodeInfo = nil
-		for _, value := range ssn.Nodes {
-			node = value
-			break // Exit the loop after getting the first value
-		}
-		nodeLabels := node.Node.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
-		klog.V(3).Infof("Node labels: %s", nodeLabels)
-		klog.V(3).Infof("Queue labels: %s", labelNodeGroup)
+	// klog.V(3).Infof("------------------my custom-------------------------------------start")
+	// var newQueue map[api.QueueID]*api.QueueInfo = make(map[api.QueueID]*api.QueueInfo)
+	// for _, queue := range snapshot.Queues {
+	// 	klog.V(3).Infof("Index, Queue Name: %s\n", queue.Name)
+	// 	labelNodeGroup := queue.Queue.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
+	// 	var node *api.NodeInfo = nil
+	// 	for _, value := range ssn.Nodes {
+	// 		node = value
+	// 		break // Exit the loop after getting the first value
+	// 	}
+	// 	if node == nil {
+	// 		break
+	// 	}
+	// 	nodeLabels := node.Node.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
+	// 	klog.V(3).Infof("Node labels: %s", nodeLabels)
+	// 	klog.V(3).Infof("Queue labels: %s", labelNodeGroup)
+	//
+	// 	if queue != nil && nodeLabels == labelNodeGroup {
+	// 		klog.V(3).Infof("Node labels match: %s", nodeLabels)
+	// 		newQueue[queue.UID] = queue
+	// 	}
+	// }
+	// for key, value := range newQueue {
+	// 	klog.V(3).Infof("valuee: %+v", value)
+	// 	klog.V(3).Infof("New queue key: %s, value: %+v", key, value)
+	// }
+	// klog.V(3).Infof("------------------my custom--------------------end looop 222")
 
-		if queue != nil && nodeLabels == labelNodeGroup {
-			klog.V(3).Infof("Node labels match: %s", nodeLabels)
-			newQueue[queue.UID] = queue
-		}
-	}
-	for key, value := range newQueue {
-		klog.V(3).Infof("valuee: %+v", value)
-		klog.V(3).Infof("New queue key: %s, value: %+v", key, value)
-	}
-	klog.V(3).Infof("------------------my custom--------------------end looop")
 	ssn.Queues = snapshot.Queues
-	klog.V(3).Infof("------------------my custom-------------------------------------end")
 
-	ssn.Queues = newQueue
 	ssn.NamespaceInfo = snapshot.NamespaceInfo
 	// calculate all nodes' resource only once in each schedule cycle, other plugins can clone it when need
 	for _, n := range ssn.Nodes {
