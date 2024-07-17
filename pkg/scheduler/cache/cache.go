@@ -1122,8 +1122,9 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 	for _, value := range sc.Queues {
 
 		klog.V(3).Infof("------------------my custom-------------------------------------start")
-		labelNodeGroup := value.Queue.ObjectMeta.Labels["volcano.sh/nodegroup-name"]
+		labelNodeGroup := value.Queue.ObjectMeta.Labels["volcano.sh/scheduler-name"]
 		klog.V(3).Infof("Scheduler name: %s", sc.schedulerNames[0])
+		klog.V(3).Infof("Queue: %s", labelNodeGroup)
 		if labelNodeGroup == sc.schedulerNames[0] {
 			klog.V(3).Infof("Founding queue: %s", value.Name)
 			snapshot.Queues[value.UID] = value.Clone()

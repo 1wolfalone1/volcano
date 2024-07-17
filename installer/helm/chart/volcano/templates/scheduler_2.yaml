@@ -160,8 +160,8 @@ spec:
             - --scheduler-conf=/volcano.scheduler/{{base .Values.basic.scheduler_config_file}}
             - --enable-healthz=true
             - --enable-metrics=true
-            - --node-selector=volcano.sh/nodegroup-name:g2
-            - --scheduler-name=g2
+            - --node-selector=volcano.sh/scheduler-name:gfs
+            - --scheduler-name=gfs
             - --leader-elect={{ .Values.custom.leader_elect_enable }}
             {{- if .Values.custom.leader_elect_enable }}
             - --leader-elect-resource-namespace={{ .Release.Namespace }}
